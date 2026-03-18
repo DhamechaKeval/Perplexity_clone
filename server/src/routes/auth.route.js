@@ -4,6 +4,7 @@ import {
   verifyEmailController,
   loginController,
   getMeController,
+  logoutController,
 } from "../controllers/auth.controller.js";
 import verifyUser from "./../middlewares/auth.middleware.js";
 import {
@@ -43,5 +44,7 @@ authRouter.post("/login", loginValidator, loginController);
  * @access  Private
  */
 authRouter.get("/get-me", verifyUser, getMeController);
+
+authRouter.get("/logout", verifyUser, logoutController);
 
 export default authRouter;

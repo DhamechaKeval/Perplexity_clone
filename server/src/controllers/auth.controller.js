@@ -1,6 +1,7 @@
 import User from "./../models/user.model.js";
 import sendEmail from "./../services/mail.service.js";
 import jwt from "jsonwebtoken";
+import { redis } from "../config/cache.js";
 
 export const registerController = async (req, res) => {
   const { username, email, password } = req.body;
@@ -139,5 +140,17 @@ export const getMeController = async (req, res) => {
     message: "User details fetched successfully",
     success: true,
     user,
+  });
+};
+
+export const logoutController = async (req, res) => {
+  const token = req.cookies.token;
+
+  res.clearCookie("token");
+
+  await redis.set(token, Date.now().toString());
+
+  res.status(200).json({
+    message: `User logged out successfully.`,
   });
 };
