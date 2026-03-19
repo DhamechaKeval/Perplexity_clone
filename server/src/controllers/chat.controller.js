@@ -3,8 +3,8 @@ import Chat from "./../models/chat.model.js";
 import Message from "./../models/message.model.js";
 
 export const sendMessage = async (req, res) => {
-  const { message, chat: chatId } = req.body;
-
+  const { message, chatId } = req.body;
+ 
   let title = null,
     chat = null;
 
@@ -33,7 +33,7 @@ export const sendMessage = async (req, res) => {
   });
 
   res.status(201).json({
-    chat,
+    chat: chat || { _id: chatId },
     title,
     aiMessage,
   });

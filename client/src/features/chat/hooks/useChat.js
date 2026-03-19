@@ -5,6 +5,7 @@ import {
   getChats,
   getMessages,
   logout,
+  deleteChat,
 } from "./../service/chat.api";
 
 import {
@@ -15,6 +16,8 @@ import {
   createNewChat,
   addNewMessage,
   addMessages,
+  replaceTempChat,
+  deleteChatById,
 } from "../chat.slice";
 import { setUser } from "../../auth/auth.slice";
 
@@ -26,33 +29,52 @@ export const useChat = () => {
     try {
       dispatch(setLoading(true));
 
-      const data = await sendMessage({ message, chatId });
-      const { chat, aiMessage } = data;
+      let tempChatId = chatId;
 
       if (!chatId) {
+        tempChatId = "temp-" + Date.now(); // 🔥 unique id
+
         dispatch(
           createNewChat({
-            chatId: chat._id,
-            title: chat.title,
+            chatId: tempChatId,
+            title: "New Chat",
           }),
         );
+
+        dispatch(setCurrentChatId(tempChatId));
       }
+
       dispatch(
         addNewMessage({
-          chatId: chat._id,
+          chatId: tempChatId,
           content: message,
           role: "user",
         }),
       );
+
+      const data = await sendMessage({ message, chatId });
+      const { chat, aiMessage } = data;
+
+      const realChatId = chat._id;
+
+      if (!chatId) {
+        dispatch(
+          replaceTempChat({
+            tempId: tempChatId,
+            realChat: chat,
+          }),
+        );
+      }
+
       dispatch(
         addNewMessage({
-          chatId: chat._id,
+          chatId: realChatId,
           content: aiMessage.content,
           role: aiMessage.role,
         }),
       );
 
-      dispatch(setCurrentChatId(chat._id));
+      dispatch(setCurrentChatId(realChatId));
     } catch (err) {
       console.error(err);
       dispatch(setError(err.message));
@@ -120,6 +142,10 @@ export const useChat = () => {
     }
   };
 
+  const startNewChat = () => {
+    dispatch(setCurrentChatId(null));
+  };
+
   const handleLogout = async () => {
     try {
       dispatch(setLoading(true));
@@ -136,11 +162,29 @@ export const useChat = () => {
     }
   };
 
+  const handleDeleteChat = async (chatId) => {
+    try {
+      dispatch(setLoading(true));
+
+      // ✅ optimistic UI (fast feel)
+      dispatch(deleteChatById(chatId));
+
+      await deleteChat({ chatId });
+    } catch (err) {
+      console.error(err);
+      dispatch(setError(err.message));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
   return {
     initSocketConnection,
     handleSendMessage,
     handleGetChats,
     handleLogout,
     handleOpenChat,
+    startNewChat,
+    handleDeleteChat,
   };
 };

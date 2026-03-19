@@ -1,51 +1,44 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useChat } from "./../hooks/useChat";
-import "../../../app/index.css";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useNavigate } from "react-router";
 
 const Dashboard = () => {
   const chat = useChat();
+  const user = useSelector((state) => state.auth.user);
   const chats = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
-  const navigate = useNavigate();
+  const isLoading = useSelector((state) => state.chat.isLoading);
+
   const [message, setMessage] = useState("");
+  const [showSidebar, setShowSidebar] = useState(false);
+
   const messagesEndRef = useRef(null);
 
-  // Init
   useEffect(() => {
     chat.handleGetChats();
     chat.initSocketConnection();
   }, []);
 
-  // Auto scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView();
   }, [chats, currentChatId]);
 
-  // Open chat (Bug-1 fix)
   const openChat = (chatId) => {
     if (chatId === currentChatId) return;
     chat.handleOpenChat(chatId);
+    setShowSidebar(false);
   };
 
-  // Send message (Bug-2 safe)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const trimmedMessage = message.trim();
-    if (!trimmedMessage) return;
-
-    if (!currentChatId) {
-      console.log("❌ No chat selected");
-      return;
-    }
+    const trimmed = message.trim();
+    if (!trimmed) return;
 
     await chat.handleSendMessage({
-      message: trimmedMessage,
-      chatId: currentChatId,
+      message: trimmed,
+      chatId: currentChatId || null,
     });
 
     setMessage("");
@@ -54,103 +47,138 @@ const Dashboard = () => {
   const currentChat = chats[currentChatId];
 
   return (
-    <div className="h-screen bg-[#07171a] flex items-center justify-center text-white">
-      <div className="flex w-full h-full border border-white/10 overflow-hidden bg-[#07171a] p-4">
-        {/* Sidebar */}
-        <div className="h-full flex flex-col gap-4">
-          {/* Logo */}
-          <div className="w-72 h-[10%] flex items-center justify-center bg-[#0d2226] rounded-4xl bg-gradient-to-br from-[#31b8c6]/35 to-transparent">
-            <h2 className="text-2xl font-semibold text-[#31b8c6]">
-              Perplexity
-            </h2>
+    <div className="h-screen bg-[#07171a] flex items-center justify-center text-white relative">
+      {/* Overlay */}
+      {showSidebar && (
+        <div
+          onClick={() => setShowSidebar(false)}
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+        />
+      )}
+
+      <div className="flex w-full h-full border border-white/10 overflow-hidden bg-[#07171a] md:p-4">
+        {/* ================= SIDEBAR ================= */}
+        <div
+          className={`h-full flex flex-col gap-4 fixed md:relative z-50 bg-[#07171a] md:bg-transparent left-0 top-0 w-72 transition-transform duration-300
+          ${showSidebar ? "translate-x-0 " : "-translate-x-full md:translate-x-0"}`}
+        >
+          <div className="flex  items-center justify-between h-[10%] w-72  ">
+            <div className=" w-full flex items-center justify-center border-r border-white/10 bg-[#0d2226] rounded-4xl bg-linear-to-br from-[#31b8c6]/35 via-transparent to-transparent">
+              <h2 className="text-2xl font-semibold px-auto py-4 text-[#31b8c6]">
+                Perplexity
+              </h2>
+            </div>
+            <button
+              onClick={() => setShowSidebar(false)}
+              className="md:hidden text-right p-3"
+            >
+              ✕
+            </button>
           </div>
 
-          {/* Chat List */}
-          <div className="w-72 h-[90%] flex flex-col bg-[#0d2226] p-6 rounded-4xl">
+          <div className="w-72 h-[90%] flex flex-col border-r border-white/10 bg-[#0d2226] p-6 rounded-4xl bg-linear-to-br from-[#31b8c6]/25 via-transparent to-transparent">
+            <button
+              onClick={() => chat.startNewChat()}
+              className="mb-4 rounded-xl bg-[#31b8c6] py-2 font-semibold text-[#06262b]"
+            >
+              + New Chat
+            </button>
+
             <h2 className="text-xl font-semibold text-center text-[#31b8c6] mb-6">
               Chat History
             </h2>
 
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5 pr-1">
               {Object.values(chats).map((c) => (
-                <button
+                <div
                   key={c.id}
+                  className={`flex justify-between items-center w-full px-4 py-2 rounded-xl border transition-all duration-200 cursor-pointer
+        ${
+          c.id === currentChatId
+            ? "bg-[#31b8c6]/20 border-[#31b8c6] text-[#31b8c6]"
+            : "border-white/10 bg-[#091417] hover:border-[#31b8c6]"
+        }`}
                   onClick={() => openChat(c.id)}
-                  className={`w-full text-left px-4 py-2 rounded-xl border transition-all duration-200
-                    ${
-                      c.id === currentChatId
-                        ? "bg-[#31b8c6]/20 border-[#31b8c6] text-[#31b8c6]"
-                        : "border-white/10 bg-[#091417] hover:border-[#31b8c6]"
-                    }`}
                 >
-                  {c.title}
-                </button>
+                  <span>{c.title}</span>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      chat.handleDeleteChat(c.id);
+                    }}
+                    className="h-6 w-6 text-red-500 hover:bg-red-500 hover:text-white rounded flex items-center justify-center"
+                  >
+                    ✕
+                  </button>
+                </div>
               ))}
             </div>
 
+            <div className="mt-4 text-center text-[#31b8c6]">{user.email}</div>
+
             <button
-              onClick={async () => {
-                await chat.handleLogout();
-              }}
-              className="mt-4 rounded-xl cursor-pointer bg-red-500/70 py-2 font-medium hover:bg-red-700"
+              onClick={() => chat.handleLogout()}
+              className="mt-2 rounded-xl bg-red-500/70 py-2"
             >
               Log out
             </button>
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex flex-col flex-1 ml-6 rounded-[35px] border border-white/10 shadow-xl overflow-hidden bg-[#061517]">
+        {/* ================= CHAT AREA ================= */}
+        <div className="flex flex-col flex-1 md:ml-6 md:rounded-[35px] border border-white/10 shadow-xl overflow-hidden bg-[#061517] sm:max-w-full">
           {/* Header */}
-          <div className="flex justify-center border-b border-white/10 px-6 py-3 bg-[#0d2226] bg-gradient-to-br from-[#31b8c6]/25 to-transparent">
+          <div className="flex justify-center items-center relative border-b border-white/10 px-6 py-3 bg-[#0d2226] bg-gradient-to-br from-[#31b8c6]/25 to-transparent">
+            {/* Mobile menu */}
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="absolute left-6 md:hidden"
+            >
+              ☰
+            </button>
+
             <div className="px-8 py-2 text-[#31b8c6] text-xl font-bold">
-              {currentChat?.title || "Select Chat"}
+              {currentChat?.title || "New Chat"}
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto no-scrollbar px-8 py-6 space-y-5">
+          <div className="flex-1 overflow-y-auto no-scrollbar px-4 sm:px-6 md:px-8 py-4 md:py-6 space-y-5">
             {currentChat?.messages?.map((msg, index) => (
               <div
                 key={index}
-                className={`flex ${
+                className={`flex items-start gap-3 ${
                   msg.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                <div className="px-6 py-3 rounded-2xl border border-white/10 max-w-xl shadow bg-[#0d2226]">
+                {msg.role === "ai" && (
+                  <div className="hidden md:flex w-10 h-10 rounded-full bg-[#31b8c6]/20 items-center justify-center text-[#31b8c6] text-sm font-bold">
+                    AI
+                  </div>
+                )}
+                <div
+                  className={`sm:px-4 md:px-6 max-w-[85%] sm:max-w-[75%] md:max-w-3xl break-words ${
+                    msg.role === "user"
+                      ? "px-4 py-3 rounded-2xl border border-white/10 bg-[#0d2226]"
+                      : "bg-transparent border-none"
+                  }`}
+                >
                   {msg.role === "ai" ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: (props) => (
-                          <h1 className="text-xl font-bold mb-2" {...props} />
-                        ),
-                        h2: (props) => (
-                          <h2
-                            className="text-lg font-semibold mb-2"
-                            {...props}
-                          />
-                        ),
-                        p: (props) => (
-                          <p className="mb-2 leading-relaxed" {...props} />
-                        ),
                         code: ({ inline, ...props }) =>
                           inline ? (
                             <code
-                              className="bg-[#091417] px-1 py-0.5 rounded text-sm"
+                              className="bg-[#00000077] px-1 py-0.5 rounded text-sm"
                               {...props}
                             />
                           ) : (
-                            <pre className="bg-[#091417] p-3 rounded-xl overflow-x-auto text-sm">
+                            <pre className="bg-[#000000] my-2 p-3 rounded-xl overflow-x-auto text-sm">
                               <code {...props} />
                             </pre>
                           ),
-                        li: (props) => (
-                          <li className="ml-4 list-disc" {...props} />
-                        ),
-                        strong: (props) => (
-                          <strong className="text-[#31b8c6]" {...props} />
-                        ),
                       }}
                     >
                       {msg.content}
@@ -159,30 +187,46 @@ const Dashboard = () => {
                     msg.content
                   )}
                 </div>
+
+                {msg.role === "user" && (
+                  <div className="hidden md:flex w-10 h-10 rounded-full bg-[#31b8c6]/20 items-center justify-center text-[#31b8c6] text-sm font-bold">
+                    {user.email.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
             ))}
 
-            {/* Auto Scroll Anchor */}
+            {/* Loader */}
+            {isLoading && currentChatId && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#31b8c6]/20 flex items-center justify-center text-[#31b8c6] text-sm font-bold">
+                  AI
+                </div>
+
+                <div className="my-auto px-4 py-2 rounded-xl bg-[#0d2226] border border-white/10 flex gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
           <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-4 border-t border-white/10 px-6 py-4 bg-[#0d2226] bg-gradient-to-br from-[#31b8c6]/25 to-transparent"
+            className="flex items-center gap-2 sm:gap-3 md:gap-4 border-t border-white/10 px-3 sm:px-4 md:px-6 py-3 md:py-4 bg-[#0d2226]"
           >
             <input
-              type="text"
-              placeholder="Type here ..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="flex-1 bg-[#091417] rounded-xl px-4 py-3 outline-none text-white placeholder:text-gray-400 border border-white/10 focus:border-[#31b8c6]"
+              className="flex-1 bg-[#091417] rounded-xl px-3 sm:px-4 py-2.5 md:py-3 outline-none text-sm md:text-base"
+              placeholder="Ask anything..."
             />
 
-            <button
-              type="submit"
-              className="px-6 py-3 rounded-xl bg-[#31b8c6] text-[#06262b] font-semibold hover:bg-[#57c9d4]"
-            >
+            <button className="px-4 sm:px-5 md:px-6 py-2.5 md:py-3 rounded-xl bg-[#31b8c6] text-[#06262b] font-semibold text-sm md:text-base">
               Send
             </button>
           </form>

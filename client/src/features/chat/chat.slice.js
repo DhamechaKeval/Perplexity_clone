@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { deleteChat } from "./service/chat.api";
 
 const chatSlice = createSlice({
   name: "chat",
@@ -22,6 +23,19 @@ const chatSlice = createSlice({
       }
     },
 
+    replaceTempChat: (state, action) => {
+      const { tempId, realChat } = action.payload;
+      const tempChat = state.chats[tempId];
+      if (!tempChat) return;
+      delete state.chats[tempId];
+      state.chats[realChat._id] = {
+        id: realChat._id,
+        title: realChat.title,
+        messages: tempChat.messages,
+        lastUpdated: new Date().toISOString(),
+      };
+    },
+
     addNewMessage: (state, action) => {
       const { chatId, content, role } = action.payload;
 
@@ -30,12 +44,22 @@ const chatSlice = createSlice({
       state.chats[chatId].messages.push({ content, role });
     },
 
+    deleteChatById: (state, action) => {
+      const chatId = action.payload;
+
+      delete state.chats[chatId];
+
+      // agar current chat delete ho gayi
+      if (state.currentChatId === chatId) {
+        state.currentChatId = null;
+      }
+    },
     addMessages: (state, action) => {
       const { chatId, messages } = action.payload;
 
       if (!state.chats[chatId]) return;
 
-      state.chats[chatId].messages = messages; 
+      state.chats[chatId].messages = messages;
     },
 
     setChats: (state, action) => {
@@ -62,6 +86,8 @@ export const {
   setLoading,
   setError,
   createNewChat,
+  replaceTempChat,
+  deleteChatById,
   addNewMessage,
   addMessages,
 } = chatSlice.actions;

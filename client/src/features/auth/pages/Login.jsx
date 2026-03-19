@@ -34,7 +34,7 @@ const Login = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#07171a] px-4 py-10 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-[#07171a] px-4 py-10 text-white sm:px-6 lg:px-8">
       <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-[#0d2226] shadow-2xl shadow-black/30">
         <div className="bg-gradient-to-br from-[#31b8c6]/25 via-transparent to-transparent px-8 pb-6 pt-8">
           <p className="text-sm font-medium uppercase tracking-[0.3em] text-[#31b8c6]">
@@ -108,3 +108,4 @@ const Login = () => {
 };
 
 export default Login;
+
