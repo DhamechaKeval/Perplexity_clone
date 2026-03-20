@@ -1,36 +1,22 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transpoter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    type: "OAuth2",
-    user: process.env.GOOGLE_USER,
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-transpoter
-  .verify()
-  .then(() => {
-    console.log("Email Transporter Ready to send email");
-  })
-  .catch((err) => {
-    console.log("Error in setting up transporter", err);
-  });
+const sendEmail = async ({ to, subject, html }) => {
+  try {
+    const response = await resend.emails.send({
+      from: "Keval <noreply@keval.space>", // 🔥 YOUR DOMAIN
+      to,
+      subject,
+      html,
+    });
 
-const sendEmail = async ({ to, subject, html, text }) => {
-  const mailOptions = {
-    from: process.env.GOOGLE_USER,
-    to,
-    subject,
-    html,
-    text,
-  };
-
-  const details = await transpoter.sendMail(mailOptions);
-  console.log("Email sent", details);
+    console.log("✅ Email sent:", response);
+    return true;
+  } catch (err) {
+    console.log("❌ Email error:", err.message);
+    return false;
+  }
 };
 
 export default sendEmail;

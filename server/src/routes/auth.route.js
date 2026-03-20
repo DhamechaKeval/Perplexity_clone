@@ -23,7 +23,7 @@ const authRouter = Router();
 authRouter.post("/register", registerValidator, registerController);
 
 /**
- * @route   GET /api/auth/verify-user
+ * @route   GET /api/auth/verify-email
  * @desc    for verfiy user by email
  * @access  Public
  * @query   { token }

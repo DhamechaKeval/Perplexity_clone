@@ -6,38 +6,46 @@ import { redis } from "../config/cache.js";
 export const registerController = async (req, res) => {
   const { username, email, password } = req.body;
 
-  const isUserExists = await User.findOne({ $or: [{ email }, { username }] });
+  const isUserExists = await User.findOne({
+    $or: [{ email }, { username }],
+  });
 
   if (isUserExists) {
     return res.status(400).json({
       message: "User with this email or username already exists",
       success: false,
-      err: "user already exists",
     });
   }
 
   const user = await User.create({ username, email, password });
 
+  // ✅ token with expiry
   const verificationToken = jwt.sign(
     { email: user.email },
     process.env.JWT_SECRET,
+    { expiresIn: "1h" },
   );
 
-  await sendEmail({
-    to: email,
-    subject: "welcome to Perplexity!",
-    html: `
-     <p>Hi ${username},</p>
-     <p>Thank you for registering at <strong>Perplexity</strong>. We're excited to have you on board!</p>
-      <p>To get started, please verify your email address by clicking the link below:</p>
-      <p><a href="http://localhost:3000/api/auth/verify-email?token=${verificationToken}">Verify Email</a></p>
+  // ✅ production URL use kar
+  const verifyLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${verificationToken}`;
 
-     <p>Best regards,<br>The Perplexity Team</p>
+  // ✅ NON-BLOCKING EMAIL (VERY IMPORTANT)
+  sendEmail({
+    to: email,
+    subject: "Welcome to Perplexity!",
+    html: `
+      <p>Hi ${username},</p> 
+      <p>Thank you for registering at <strong>Perplexity</strong>. We're excited to have you on board!</p> 
+      <p>To get started, please verify your email address by clicking the link below:</p> 
+      <p><a href="${verifyLink}">Verify Email</a></p> 
+      <p>Best regards,<br>The Perplexity Team</p>
     `,
+  }).catch((err) => {
+    console.log("Email failed:", err.message);
   });
 
   res.status(201).json({
-    message: "User registered successfully",
+    message: "User registered successfully. Please verify your email.",
     success: true,
     user: {
       username: user.username,
@@ -61,7 +69,7 @@ export const verifyEmailController = async (req, res) => {
     const html = `
     <h1>Email Verified Successfully!</h1>
     <p>Your email has been verified. You can now log in to your account.</p>
-    <a href="http://localhost:3000/login">Go to Login</a>
+    <a href="${process.env.BASE_URL}/login">Go to Login</a>
     `;
 
     return res.send(html);
