@@ -23,8 +23,11 @@ const Login = () => {
       password,
     };
 
-    await handleLogin(formData);
-    navigate("/");
+    const success = await handleLogin(formData);
+
+    if (success) {
+      navigate("/");
+    }
 
     //console.log("Login submitted:", formData);
   };
@@ -108,4 +111,3 @@ const Login = () => {
 };
 
 export default Login;
-

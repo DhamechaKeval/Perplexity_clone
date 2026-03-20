@@ -1,25 +1,22 @@
 import nodemailer from "nodemailer";
 
-const transpoter = nodemailer.createTransport({
-  service: "gmail",
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // required for 465
   auth: {
     user: process.env.GOOGLE_USER,
-    pass: process.env.GOOGLE_USER_PASS,
-    // clientId: process.env.GOOGLE_CLIENT_ID,
-    // clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    // refreshToken: process.env.GOOGLE_REFRESEH_TOKEN,
+    pass: process.env.GOOGLE_USER_PASS, // App Password ONLY
   },
+  connectionTimeout: 10000, // prevent hanging
 });
 
-transpoter
-  .verify()
-  .then(() => {
-    console.log("Email Transporter Ready to send email");
-  })
-  .catch((err) => {
-    console.log("Error in setting up transporter", err);
-  });
-
+if (process.env.NODE_ENV !== "production") {
+  transporter
+    .verify()
+    .then(() => console.log("Email transporter ready"))
+    .catch((err) => console.log("Email transporter error:", err.message));
+}
 const sendEmail = async ({to, subject, html, text}) => {
   const mailOptions = {
     from: process.env.GOOGLE_USER,
@@ -29,7 +26,7 @@ const sendEmail = async ({to, subject, html, text}) => {
     text,
   };
 
-  const details = await transpoter.sendMail(mailOptions);
+  const details = await transporter.sendMail(mailOptions);
   console.log("Email sent", details);
 };
 

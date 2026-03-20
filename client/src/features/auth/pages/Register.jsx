@@ -21,8 +21,11 @@ const Register = () => {
       password,
     };
 
-    await handleRegister(formData);
-    navigate("/login");
+    const success = await handleRegister(formData);
+
+    if (success) {
+      navigate("/login");
+    }
 
     //console.log("Register submitted:", formData);
   };
