@@ -1,45 +1,36 @@
-import dns from "dns";
-dns.setDefaultResultOrder("ipv4first");
-
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+const transpoter = nodemailer.createTransport({
+  service: "gmail",
   auth: {
+    type: "OAuth2",
     user: process.env.GOOGLE_USER,
-    pass: process.env.GOOGLE_USER_PASS,
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  connectionTimeout: 20000,
 });
 
-if (process.env.NODE_ENV !== "production") {
-  transporter
-    .verify()
-    .then(() => console.log("Email transporter ready"))
-    .catch((err) => console.log("Email transporter error:", err.message));
-}
+transpoter
+  .verify()
+  .then(() => {
+    console.log("Email Transporter Ready to send email");
+  })
+  .catch((err) => {
+    console.log("Error in setting up transporter", err);
+  });
 
 const sendEmail = async ({ to, subject, html, text }) => {
-  try {
-    const details = await transporter.sendMail({
-      from: process.env.GOOGLE_USER,
-      to,
-      subject,
-      html,
-      text,
-    });
+  const mailOptions = {
+    from: process.env.GOOGLE_USER,
+    to,
+    subject,
+    html,
+    text,
+  };
 
-    console.log("Email sent", details.messageId);
-    return true;
-  } catch (err) {
-    console.log("Email error:", err.message);
-    return false;
-  }
+  const details = await transpoter.sendMail(mailOptions);
+  console.log("Email sent", details);
 };
 
 export default sendEmail;
