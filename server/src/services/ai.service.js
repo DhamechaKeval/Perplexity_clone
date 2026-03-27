@@ -1,6 +1,14 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatMistralAI } from "@langchain/mistralai";
-import { HumanMessage, AIMessage, SystemMessage } from "langchain";
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+  tool,
+  createAgent,
+} from "langchain";
+import * as z from "zod";
+import { searchInternet } from "./internet.service.js";
 
 const gemini_model = new ChatGoogleGenerativeAI({
   model: process.env.GEMINI_MODEL,
@@ -12,18 +20,39 @@ const mistral_model = new ChatMistralAI({
   apiKey: process.env.MISTRAL_API_KEY,
 });
 
-export const generateResponse = async (msgs) => {
-  const response = await gemini_model.invoke(
-    msgs.map((msg) => {
-      if (msg.role == "user") {
-        return new HumanMessage(msg.content);
-      } else {
-        return new AIMessage(msg.content);
-      }
-    }),
-  );
-  return response.text;
-};
+const searchInternetTool = tool(searchInternet, {
+  name: "searchInternet",
+  description: "Use this tool to get the latest information from the internet.",
+  schema: z.object({
+    query: z.string().describe("The search query to look up on the internet."),
+  }),
+});
+
+const agent = createAgent({
+  model: mistral_model,
+  tools: [searchInternetTool],
+});
+
+export async function generateResponse(messages) {
+  const response = await agent.invoke({
+    messages: [
+      new SystemMessage(`
+                You are a helpful and precise assistant for answering questions.
+                If you don't know the answer, say you don't know. 
+                If the question requires up-to-date information, use the "searchInternet" tool to get the latest information from the internet and then answer based on the search results.
+            `),
+      ...messages.map((msg) => {
+        if (msg.role == "user") {
+          return new HumanMessage(msg.content);
+        } else if (msg.role == "ai") {
+          return new AIMessage(msg.content);
+        }
+      }),
+    ],
+  });
+
+  return response.messages[response.messages.length - 1].text;
+}
 
 export const generateChatTitle = async (msg) => {
   const response = await mistral_model.invoke([

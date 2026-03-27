@@ -4,7 +4,7 @@ import Message from "./../models/message.model.js";
 
 export const sendMessage = async (req, res) => {
   const { message, chatId } = req.body;
- 
+
   let title = null,
     chat = null;
 
@@ -92,7 +92,7 @@ export const deleteChat = async (req, res) => {
     });
   }
 
-  req.status(200).json({
+  res.status(200).json({
     message: `Chat deleted successfully`,
   });
 };
