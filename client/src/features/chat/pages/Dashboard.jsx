@@ -155,7 +155,7 @@ const Dashboard = () => {
         </div>
 
         {/* ================= CHAT AREA ================= */}
-        <div className="flex flex-col flex-1 md:ml-6 md:rounded-[35px] border border-white/10 overflow-hidden bg-[#061517]">
+        <div className=" flex flex-col flex-1 md:ml-6 md:rounded-[35px] border border-white/10 overflow-hidden bg-[#061517]">
           
           {/* Header */}
           <div className="flex justify-center items-center relative border-b border-white/10 px-6 py-3 bg-[#0d2226]">
@@ -172,7 +172,7 @@ const Dashboard = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+          <div className="no-scrollbar flex-1 overflow-y-auto px-6 py-6 space-y-5">
             {currentChat?.messages?.map((msg, index) => (
               <div
                 key={index}
